@@ -1,24 +1,29 @@
-import logo from './logo.svg';
-import './App.css';
+// src/App.js
+
+import React from 'react';
+import Header from './components/Header';
+import WeatherDisplay from './components/WeatherDisplay';
+import Footer from './components/Footer';
+import { Box } from '@mui/material';
+import { UnitProvider } from './context/UnitContext';
+import { LocationProvider } from './context/LocationContext';
+import { WeatherProvider } from './context/WeatherContext';
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <UnitProvider>
+      <LocationProvider>
+        <WeatherProvider>
+          <Box display="flex" flexDirection="column" minHeight="100vh">
+            <Header />
+            <Box flexGrow={1}>
+              <WeatherDisplay />
+            </Box>
+            <Footer />
+          </Box>
+        </WeatherProvider>
+      </LocationProvider>
+    </UnitProvider>
   );
 }
 
