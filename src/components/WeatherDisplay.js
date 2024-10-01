@@ -187,11 +187,11 @@ This calculation helps us understand whether opening windows will increase or de
   // Get icon for recommendation
   const getRecommendationIcon = () => {
     if (recommendation.includes('open')) {
-      return <Air sx={{ fontSize: 40, marginRight: 1 }} />;
+      return <Air sx={{ fontSize: 40, marginRight: 2 }} />; // Increased marginRight from 1 to 2
     } else if (recommendation.includes('close')) {
-      return <HomeWork sx={{ fontSize: 40, marginRight: 1 }} />;
+      return <HomeWork sx={{ fontSize: 40, marginRight: 2 }} />; // Increased marginRight from 1 to 2
     } else {
-      return <Opacity sx={{ fontSize: 40, marginRight: 1 }} />;
+      return <Opacity sx={{ fontSize: 40, marginRight: 2 }} />; // Increased marginRight from 1 to 2
     }
   };
 
@@ -328,11 +328,12 @@ This calculation helps us understand whether opening windows will increase or de
                     sx={{
                       background: `linear-gradient(135deg, ${theme.palette.primary.main} 30%, ${theme.palette.secondary.main} 90%)`,
                       color: '#fff',
-                      animation: 'pulse 5s infinite',
+                      // animation: 'pulse 5s infinite', // Consider removing if not defined
                     }}
                   >
                     <CardContent>
-                      <Box display="flex" alignItems="center">
+                      {/* Using gap instead of marginRight */}
+                      <Box display="flex" alignItems="center" gap={2}>
                         {getRecommendationIcon()}
                         <Typography variant="h5">{recommendation}</Typography>
                       </Box>
@@ -346,12 +347,19 @@ This calculation helps us understand whether opening windows will increase or de
                           color="inherit"
                           endIcon={showDetails ? <HomeWork /> : <Air />}
                           onClick={handleToggleDetails}
+                          sx={{
+                            textTransform: 'none',
+                            backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                            '&:hover': {
+                              backgroundColor: 'rgba(255, 255, 255, 0.3)',
+                            },
+                          }}
                         >
-                          {showDetails ? 'Hide Details' : 'Learn the Science Behind This Recommendation'}
+                          {showDetails ? 'Hide Details' : 'See the Math Behind This Recommendation'}
                         </Button>
                       </Box>
                       <Collapse in={showDetails} timeout="auto" unmountOnExit>
-                        <Box sx={{ marginTop: 2 }}>
+                        <Box sx={{ marginTop: 3 }}>
                           <Typography variant="body2" component="div">
                             <div
                               dangerouslySetInnerHTML={{
