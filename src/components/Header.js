@@ -88,7 +88,6 @@ const Header = () => {
   };
 
   const handleCitySelect = async (event, value) => {
-    setSelectedCity(value);
     if (value) {
       if (value.isCurrentLocation) {
         setLocationLoading(true);
@@ -112,6 +111,9 @@ const Header = () => {
                 });
               } finally {
                 setLocationLoading(false);
+                // Clear the input field
+                setCityInput('');
+                setSelectedCity(null);
               }
             },
             (error) => {
@@ -123,6 +125,9 @@ const Header = () => {
                 city: 'New York',
               });
               setLocationLoading(false);
+              // Clear the input field
+              setCityInput('');
+              setSelectedCity(null);
             }
           );
         } else {
@@ -134,6 +139,9 @@ const Header = () => {
             city: 'New York',
           });
           setLocationLoading(false);
+          // Clear the input field
+          setCityInput('');
+          setSelectedCity(null);
         }
       } else {
         // Handle regular city selection
@@ -142,10 +150,14 @@ const Header = () => {
           lon: value.lon,
           city: value.name,
         });
+        // Clear the input field
+        setCityInput('');
+        setSelectedCity(null);
       }
     } else {
       // User cleared the selection
       setSelectedCity(null);
+      setCityInput('');
     }
   };
 
@@ -241,6 +253,7 @@ const Header = () => {
               getOptionLabel={(option) =>
                 option.isCurrentLocation ? 'Current Location' : option.name
               }
+              inputValue={cityInput}
               onInputChange={(event, newInputValue) => {
                 setCityInput(newInputValue);
                 if (newInputValue === '') {
