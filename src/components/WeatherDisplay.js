@@ -14,12 +14,12 @@ import {
   Typography,
   Card,
   CardContent,
-  CardHeader,
   InputAdornment,
   Collapse,
   Box,
   Fade,
   Button,
+  Tooltip,
 } from '@mui/material';
 import {
   Thermostat,
@@ -27,6 +27,8 @@ import {
   Air,
   Grain,
   HomeWork,
+  OpacityOutlined,
+  InfoOutlined, // For empty state icon
 } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import {
@@ -36,7 +38,33 @@ import {
   WiSnow,
   WiFog,
   WiThunderstorm,
+  WiThermometer,
 } from 'react-icons/wi';
+
+// Utility function to categorize humidity levels
+const getHumidityLevel = (humidity) => {
+  if (humidity < 30) return 'Low';
+  if (humidity >= 30 && humidity < 60) return 'Moderate';
+  if (humidity >= 60 && humidity < 80) return 'High';
+  return 'Very High';
+};
+
+// Utility function to get color based on humidity level
+const getHumidityColor = (humidity, theme) => {
+  if (humidity < 30) return theme.palette.info.main; // Blue
+  if (humidity >= 30 && humidity < 60) return theme.palette.success.main; // Green
+  if (humidity >= 60 && humidity < 80) return theme.palette.warning.main; // Orange
+  return theme.palette.error.main; // Red
+};
+
+// Helper Function to Map Precipitation Probability to Description
+const getPrecipitationDescription = (probability) => {
+  if (probability >= 90) return 'Very likely to rain';
+  if (probability >= 70) return 'High chance of rain';
+  if (probability >= 40) return 'Some rain';
+  if (probability >= 10) return 'Low chance of rain';
+  return 'No rain today';
+};
 
 const WeatherDisplay = () => {
   const theme = useTheme();
@@ -81,7 +109,7 @@ Your indoor absolute humidity is **${indoorAH.toFixed(2)} g/m³**, while the out
 ${
   indoorAH > outdoorAH
     ? 'Since the indoor absolute humidity is higher, opening the windows could help reduce indoor humidity levels.'
-    : 'Since the outdoor absolute humidity is higher, it\'s better to keep the windows closed to prevent increasing indoor humidity.'
+    : "Since the outdoor absolute humidity is higher, it's better to keep the windows closed to prevent increasing indoor humidity."
 }
 
 **How We Calculated This:**
@@ -187,12 +215,17 @@ This calculation helps us understand whether opening windows will increase or de
   // Get icon for recommendation
   const getRecommendationIcon = () => {
     if (recommendation.includes('open')) {
-      return <Air sx={{ fontSize: 40, marginRight: 2 }} />; // Increased marginRight from 1 to 2
+      return <Air sx={{ fontSize: 40, marginRight: 2 }} />;
     } else if (recommendation.includes('close')) {
-      return <HomeWork sx={{ fontSize: 40, marginRight: 2 }} />; // Increased marginRight from 1 to 2
+      return <HomeWork sx={{ fontSize: 40, marginRight: 2 }} />;
     } else {
-      return <Opacity sx={{ fontSize: 40, marginRight: 2 }} />; // Increased marginRight from 1 to 2
+      return <Opacity sx={{ fontSize: 40, marginRight: 2 }} />;
     }
+  };
+
+  // Function to format temperature based on unit
+  const formatTemperature = (temp) => {
+    return `${temp}°${unit === 'metric' ? 'C' : 'F'}`;
   };
 
   return (
@@ -201,51 +234,95 @@ This calculation helps us understand whether opening windows will increase or de
         <Grid container spacing={4}>
           {/* Left Panel */}
           <Grid item xs={12} md={6}>
-            {/* Outdoor Weather */}
+            {/* Adjusted Title for Current Weather */}
+            <Typography variant="h5" component="h2" gutterBottom>
+              Current Weather in {location.city}
+            </Typography>
+
+            {/* Outdoor Weather Card */}
             <Card>
-              <CardHeader
-                title={`Current Weather in ${location.city}`}
-                avatar={<WiDaySunny size={32} color={theme.palette.primary.main} />}
-              />
+              {/* Removed CardHeader */}
               <CardContent>
                 <Box display="flex" alignItems="center">
                   {getWeatherIcon(outdoorWeather.condition)}
-                  <Typography variant="h4" sx={{ marginLeft: 2 }}>
+                  <Typography variant="h6" sx={{ marginLeft: 2 }}>
                     {getConditionDescription(outdoorWeather.condition)}
                   </Typography>
                 </Box>
                 <Grid container spacing={2} sx={{ marginTop: 2 }}>
+                  {/* 1. Temperature */}
                   <Grid item xs={12} sm={6}>
                     <Box display="flex" alignItems="center">
                       <Thermostat sx={{ marginRight: 1 }} />
-                      <Typography variant="h6">
-                        Temperature: {outdoorWeather.temperature}°
+                      <Typography variant="subtitle1">
+                        Temperature: {formatTemperature(outdoorWeather.temperature)}
+                      </Typography>
+                    </Box>
+                  </Grid>
+
+                  {/* 2. Feels Like */}
+                  <Grid item xs={12} sm={6}>
+                    <Box display="flex" alignItems="center">
+                      <Thermostat sx={{ marginRight: 1 }} />
+                      <Typography variant="subtitle1">
+                        Feels Like: {formatTemperature(outdoorWeather.apparent_temperature)}
+                      </Typography>
+                    </Box>
+                  </Grid>
+
+                  {/* 3. Precipitation */}
+                  <Grid item xs={12} sm={6}>
+                    <Box display="flex" alignItems="center">
+                      <Grain sx={{ marginRight: 1 }} />
+                      <Typography variant="subtitle1">
+                        {getPrecipitationDescription(outdoorWeather.precipitation_probability)}
+                      </Typography>
+                    </Box>
+                  </Grid>
+
+                  {/* 4. Humidity */}
+                  <Grid item xs={12} sm={6}>
+                    <Box display="flex" alignItems="center">
+                      <Tooltip title={getHumidityLevel(outdoorWeather.humidity)} arrow>
+                        <Typography
+                          variant="subtitle1"
+                          sx={{
+                            color: getHumidityColor(outdoorWeather.humidity, theme),
+                            cursor: 'default',
+                            display: 'flex',
+                            alignItems: 'center',
+                          }}
+                        >
+                          <Opacity
+                            sx={{
+                              marginRight: 1,
+                              color: getHumidityColor(outdoorWeather.humidity, theme),
+                            }}
+                          />
+                          Humidity: {outdoorWeather.humidity}%
+                        </Typography>
+                      </Tooltip>
+                    </Box>
+                  </Grid>
+
+                  {/* 5. Dew Point */}
+                  <Grid item xs={12} sm={6}>
+                    <Box display="flex" alignItems="center">
+                      <OpacityOutlined sx={{ marginRight: 1 }} />
+                      <Typography variant="subtitle1">
+                        Dew Point: {outdoorWeather.dew_point}°
                         {unit === 'metric' ? 'C' : 'F'}
                       </Typography>
                     </Box>
                   </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <Box display="flex" alignItems="center">
-                      <Opacity sx={{ marginRight: 1 }} />
-                      <Typography variant="h6">
-                        Humidity: {outdoorWeather.humidity}%
-                      </Typography>
-                    </Box>
-                  </Grid>
+
+                  {/* 6. Wind */}
                   <Grid item xs={12} sm={6}>
                     <Box display="flex" alignItems="center">
                       <Air sx={{ marginRight: 1 }} />
-                      <Typography variant="h6">
+                      <Typography variant="subtitle1">
                         Wind: {outdoorWeather.wind_speed} m/s,{' '}
                         {getWindDirection(outdoorWeather.wind_direction)}
-                      </Typography>
-                    </Box>
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <Box display="flex" alignItems="center">
-                      <Grain sx={{ marginRight: 1 }} />
-                      <Typography variant="h6">
-                        Precipitation: {outdoorWeather.precipitation} mm
                       </Typography>
                     </Box>
                   </Grid>
@@ -255,11 +332,11 @@ This calculation helps us understand whether opening windows will increase or de
 
             {/* Humidity Chart */}
             <Card sx={{ marginTop: 4 }}>
-              <CardHeader
-                title="Today's Humidity Levels"
-                avatar={<Opacity color="primary" />}
-              />
               <CardContent>
+                {/* Adjusted Title for Humidity Chart */}
+                <Typography variant="h6" component="h3" gutterBottom>
+                  Today's Humidity Levels
+                </Typography>
                 {hourlyData.length > 0 ? (
                   <HumidityChart data={hourlyData} unit={unit} theme={theme} />
                 ) : (
@@ -271,12 +348,14 @@ This calculation helps us understand whether opening windows will increase or de
 
           {/* Right Panel */}
           <Grid item xs={12} md={6}>
+            {/* Adjusted Title for Indoor Conditions */}
+            <Typography variant="h5" component="h2" gutterBottom>
+              Submit Your Indoor Conditions
+            </Typography>
+
             {/* Input Indoor Conditions */}
             <Card>
-              <CardHeader
-                title="Your Indoor Conditions"
-                avatar={<HomeWork color="primary" />}
-              />
+              {/* Removed CardHeader */}
               <CardContent>
                 <Grid container spacing={2}>
                   <Grid item xs={12} sm={6}>
@@ -328,14 +407,12 @@ This calculation helps us understand whether opening windows will increase or de
                     sx={{
                       background: `linear-gradient(135deg, ${theme.palette.primary.main} 30%, ${theme.palette.secondary.main} 90%)`,
                       color: '#fff',
-                      // animation: 'pulse 5s infinite', // Consider removing if not defined
                     }}
                   >
                     <CardContent>
-                      {/* Using gap instead of marginRight */}
                       <Box display="flex" alignItems="center" gap={2}>
                         {getRecommendationIcon()}
-                        <Typography variant="h5">{recommendation}</Typography>
+                        <Typography variant="h6">{recommendation}</Typography>
                       </Box>
                       <Box
                         display="flex"
@@ -374,9 +451,27 @@ This calculation helps us understand whether opening windows will increase or de
                 </Box>
               </Fade>
             ) : (
-              <Typography variant="body1" sx={{ marginTop: 4 }}>
-                Please input your indoor conditions to get a recommendation.
-              </Typography>
+              // Enhanced Empty State Resembling Recommendation Card
+              <Box sx={{ marginTop: 4 }}>
+                <Card
+                  variant="outlined"
+                  sx={{
+                    background: theme.palette.background.paper,
+                    color: theme.palette.text.primary,
+                    borderStyle: 'dashed',
+                  }}
+                >
+                  <CardContent>
+                    <Box display="flex" alignItems="center" gap={2}>
+                      <InfoOutlined sx={{ fontSize: 40, color: theme.palette.grey[400] }} />
+                      <Typography variant="h6">No Recommendations Yet</Typography>
+                    </Box>
+                    <Typography variant="body1" sx={{ marginTop: 2 }}>
+                      Please input your indoor conditions to receive a recommendation.
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Box>
             )}
           </Grid>
         </Grid>

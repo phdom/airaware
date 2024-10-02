@@ -139,7 +139,7 @@ const Header = () => {
                   },
                 }}
               >
-                Know when to ventilate your home to lower humidity.
+                Open your windows strategically to decrease indoor humidity.
               </Typography>
             </Box>
           </Stack>
