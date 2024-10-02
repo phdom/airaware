@@ -25,6 +25,8 @@ import { ThemeContext } from '../context/ThemeContext';
 import { LocationContext } from '../context/LocationContext';
 import darkLogo from '../assets/logo-dark.png';
 import lightLogo from '../assets/logo-light.png';
+import MyLocationIcon from '@mui/icons-material/MyLocation';
+import axios from 'axios';
 
 const Header = () => {
   const { darkMode, toggleDarkMode } = useContext(ThemeContext);
@@ -32,6 +34,8 @@ const Header = () => {
   const [cityInput, setCityInput] = useState('');
   const [cityOptions, setCityOptions] = useState([]);
   const [cityLoading, setCityLoading] = useState(false);
+  const [selectedCity, setSelectedCity] = useState(null);
+  const [locationLoading, setLocationLoading] = useState(false);
 
   const theme = useTheme();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
@@ -42,7 +46,10 @@ const Header = () => {
         setCityLoading(true);
         try {
           const results = await getCities(cityInput);
-          setCityOptions(results);
+          setCityOptions([
+            { name: 'Current Location', isCurrentLocation: true },
+            ...results,
+          ]);
         } catch (error) {
           console.error('Error fetching cities:', error);
           setCityOptions([]);
@@ -50,19 +57,95 @@ const Header = () => {
           setCityLoading(false);
         }
       } else {
-        setCityOptions([]);
+        setCityOptions([{ name: 'Current Location', isCurrentLocation: true }]);
       }
     };
     fetchCities();
   }, [cityInput]);
 
-  const handleCitySelect = (event, value) => {
-    if (value) {
-      setLocation({
-        lat: value.lat,
-        lon: value.lon,
-        city: value.name,
+  const reverseGeocode = async (latitude, longitude) => {
+    const accessToken = process.env.REACT_APP_MAPBOX_TOKEN;
+    const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${longitude},${latitude}.json`;
+
+    try {
+      const response = await axios.get(url, {
+        params: {
+          access_token: accessToken,
+          types: 'place',
+          limit: 1,
+        },
       });
+
+      if (response.data.features && response.data.features.length > 0) {
+        return response.data.features[0].place_name;
+      } else {
+        return 'Your Location';
+      }
+    } catch (error) {
+      console.error('Error reverse geocoding:', error);
+      return 'Your Location';
+    }
+  };
+
+  const handleCitySelect = async (event, value) => {
+    setSelectedCity(value);
+    if (value) {
+      if (value.isCurrentLocation) {
+        setLocationLoading(true);
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            async (position) => {
+              const { latitude, longitude } = position.coords;
+              try {
+                const cityName = await reverseGeocode(latitude, longitude);
+                setLocation({
+                  lat: latitude,
+                  lon: longitude,
+                  city: cityName || 'Your Location',
+                });
+              } catch (error) {
+                console.error('Error reverse geocoding:', error);
+                setLocation({
+                  lat: latitude,
+                  lon: longitude,
+                  city: 'Your Location',
+                });
+              } finally {
+                setLocationLoading(false);
+              }
+            },
+            (error) => {
+              console.error('Error getting current location:', error);
+              // Fallback to default location (New York)
+              setLocation({
+                lat: 40.7128,
+                lon: -74.0060,
+                city: 'New York',
+              });
+              setLocationLoading(false);
+            }
+          );
+        } else {
+          console.error('Geolocation is not supported by this browser.');
+          // Fallback to default location (New York)
+          setLocation({
+            lat: 40.7128,
+            lon: -74.0060,
+            city: 'New York',
+          });
+          setLocationLoading(false);
+        }
+      } else {
+        // Handle regular city selection
+        setLocation({
+          lat: value.lat,
+          lon: value.lon,
+          city: value.name,
+        });
+      }
+    } else {
+      // User cleared the selection
+      setSelectedCity(null);
     }
   };
 
@@ -73,13 +156,13 @@ const Header = () => {
       <Container maxWidth="lg">
         <Toolbar
           sx={{
-            paddingLeft: { xs: 0 , sm: 0 },
+            paddingLeft: { xs: 0, sm: 0 },
             paddingRight: { xs: 0, sm: 0 },
-            paddingTop: { xs: 2, sm: 3 },  // Added top padding
-            paddingBottom: { xs: 2, sm: 3 },  // Added bottom padding
+            paddingTop: { xs: 2, sm: 3 },
+            paddingBottom: { xs: 2, sm: 3 },
             flexDirection: isSmallScreen ? 'column' : 'row',
             alignItems: 'center',
-            justifyContent: 'space-between',  // Improved layout
+            justifyContent: 'space-between',
           }}
         >
           <Stack
@@ -102,7 +185,7 @@ const Header = () => {
                   sm: '60px',
                   md: '80px',
                 },
-                mr: isSmallScreen ? 0 : 2,  // Add margin when not on small screen
+                mr: isSmallScreen ? 0 : 2,
               }}
             />
             <Box
@@ -155,19 +238,37 @@ const Header = () => {
           >
             <Autocomplete
               options={cityOptions}
-              getOptionLabel={(option) => option.name}
+              getOptionLabel={(option) =>
+                option.isCurrentLocation ? 'Current Location' : option.name
+              }
               onInputChange={(event, newInputValue) => {
                 setCityInput(newInputValue);
+                if (newInputValue === '') {
+                  setSelectedCity(null);
+                }
               }}
               onChange={handleCitySelect}
-              loading={cityLoading}
+              loading={cityLoading || locationLoading}
+              value={selectedCity}
+              isOptionEqualToValue={(option, value) =>
+                option.name === value.name && option.lat === value.lat
+              }
               sx={{
                 width: isSmallScreen ? '100%' : '300px',
                 backgroundColor: 'background.paper',
                 borderRadius: 1,
               }}
               renderOption={(props, option) => (
-                <MenuItem {...props}>{option.name}</MenuItem>
+                <MenuItem {...props}>
+                  {option.isCurrentLocation ? (
+                    <Box display="flex" alignItems="center">
+                      <MyLocationIcon sx={{ marginRight: 1 }} />
+                      Current Location
+                    </Box>
+                  ) : (
+                    option.name
+                  )}
+                </MenuItem>
               )}
               renderInput={(params) => (
                 <TextField
@@ -179,7 +280,9 @@ const Header = () => {
                     ...params.InputProps,
                     endAdornment: (
                       <>
-                        {cityLoading ? <CircularProgress color="inherit" size={20} /> : null}
+                        {cityLoading || locationLoading ? (
+                          <CircularProgress color="inherit" size={20} />
+                        ) : null}
                         {params.InputProps.endAdornment}
                       </>
                     ),
