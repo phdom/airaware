@@ -1,5 +1,3 @@
-// src/utils/citySearch.js
-
 import axios from 'axios';
 
 export const getCities = async (query) => {
@@ -10,10 +8,9 @@ export const getCities = async (query) => {
   const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json`;
 
   try {
-    // Manually append the access token to the params
     const response = await axios.get(url, {
       params: {
-        access_token: accessToken || 'pk.eyJ1IjoiZG9taW5pY21vcnJpcyIsImEiOiJjbTFqNGtnNHcwdGd3MmxzaXB2c2IyOW1oIn0.YwmW8uLj_DM1JDnjwnAjwA', // Replace with your token for testing
+        access_token: accessToken,
         types: 'place',
         limit: 5,
       },

@@ -66,6 +66,42 @@ const getPrecipitationDescription = (probability) => {
   return 'No rain today';
 };
 
+// New Helper Function to Get Weather Sentence with Humidity Level
+const getWeatherSentence = (code, humidityLevel) => {
+  const weatherSentences = {
+    0: `It's a clear and sunny day with ${humidityLevel.toLowerCase()} humidity. Perfect for outdoor activities!`,
+    1: `Mostly clear skies today with ${humidityLevel.toLowerCase()} humidity. Enjoy the sunshine!`,
+    2: `Partly cloudy skies with ${humidityLevel.toLowerCase()} humidity. A great day for a walk.`,
+    3: `Overcast conditions with ${humidityLevel.toLowerCase()} humidity. Might feel a bit chilly.`,
+    45: `Foggy morning with ${humidityLevel.toLowerCase()} humidity. Drive safely!`,
+    48: `Depositing rime fog is present with ${humidityLevel.toLowerCase()} humidity. Visibility is reduced.`,
+    51: `Light drizzle falling with ${humidityLevel.toLowerCase()} humidity. You might need an umbrella.`,
+    53: `Moderate drizzle making it a bit damp outside. Humidity is ${humidityLevel.toLowerCase()}.`,
+    55: `Dense drizzle causing reduced visibility. Humidity levels are ${humidityLevel.toLowerCase()}.`,
+    56: `Light freezing drizzle occurring with ${humidityLevel.toLowerCase()} humidity. Be cautious!`,
+    57: `Dense freezing drizzle making roads slippery. Humidity stands at ${humidityLevel.toLowerCase()}.`,
+    61: `Slight rain is falling with ${humidityLevel.toLowerCase()} humidity. A good day for indoor activities.`,
+    63: `Moderate rain expected today. Don't forget your raincoat! Humidity is ${humidityLevel.toLowerCase()}.`,
+    65: `Heavy rain pouring down with ${humidityLevel.toLowerCase()} humidity. Stay dry and safe!`,
+    66: `Light freezing rain making surfaces icy. Humidity is around ${humidityLevel.toLowerCase()}.`,
+    67: `Heavy freezing rain causing hazardous conditions. Humidity stands at ${humidityLevel.toLowerCase()}.`,
+    71: `Slight snow beginning to fall. Enjoy the winter scenery! Humidity is at ${humidityLevel.toLowerCase()}.`,
+    73: `Moderate snow accumulating on the ground with ${humidityLevel.toLowerCase()} humidity.`,
+    75: `Heavy snow falling. Stay warm and indoors if possible! Humidity levels are ${humidityLevel.toLowerCase()}.`,
+    77: `Snow grains present with ${humidityLevel.toLowerCase()} humidity. It's lightly snowing.`,
+    80: `Slight rain showers passing by. Humidity is ${humidityLevel.toLowerCase()}.`,
+    81: `Moderate rain showers on the way. Humidity levels are ${humidityLevel.toLowerCase()}.`,
+    82: `Violent rain showers causing disruptions. Humidity stands at ${humidityLevel.toLowerCase()}.`,
+    85: `Slight snow showers dusting the area. Humidity is around ${humidityLevel.toLowerCase()}.`,
+    86: `Heavy snow showers making travel difficult. Humidity levels are ${humidityLevel.toLowerCase()}.`,
+    95: `Thunderstorms brewing with ${humidityLevel.toLowerCase()} humidity. Stay indoors and safe!`,
+    96: `Thunderstorms with slight hail occurring. Humidity stands at ${humidityLevel.toLowerCase()}.`,
+    99: `Thunderstorms with heavy hail happening. Take cover! Humidity is ${humidityLevel.toLowerCase()}.`,
+  };
+
+  return weatherSentences[code] || `Weather conditions are currently unknown with ${humidityLevel.toLowerCase()} humidity. Stay prepared!`;
+};
+
 const WeatherDisplay = () => {
   const theme = useTheme();
   const { unit } = useContext(UnitContext);
@@ -228,6 +264,11 @@ This calculation helps us understand whether opening windows will increase or de
     return `${temp}°${unit === 'metric' ? 'C' : 'F'}`;
   };
 
+  // New Function to Get Weather Sentence with Humidity Level
+  const getCurrentWeatherSentence = (code, humidityLevel) => {
+    return getWeatherSentence(code, humidityLevel);
+  };
+
   return (
     <Container sx={{ marginTop: 4, marginBottom: 4 }}>
       {outdoorWeather ? (
@@ -249,6 +290,15 @@ This calculation helps us understand whether opening windows will increase or de
                     {getConditionDescription(outdoorWeather.condition)}
                   </Typography>
                 </Box>
+
+                {/* New Short Sentence About Weather Conditions */}
+                <Typography variant="body2" color="textSecondary" sx={{ marginTop: 1 }}>
+                  {getCurrentWeatherSentence(
+                    outdoorWeather.condition,
+                    getHumidityLevel(outdoorWeather.humidity)
+                  )}
+                </Typography>
+
                 <Grid container spacing={2} sx={{ marginTop: 2 }}>
                   {/* 1. Temperature */}
                   <Grid item xs={12} sm={6}>
@@ -299,7 +349,7 @@ This calculation helps us understand whether opening windows will increase or de
                               color: getHumidityColor(outdoorWeather.humidity, theme),
                             }}
                           />
-                          Humidity: {outdoorWeather.humidity}%
+                          Humidity: {getHumidityLevel(outdoorWeather.humidity)}
                         </Typography>
                       </Tooltip>
                     </Box>
@@ -384,7 +434,7 @@ This calculation helps us understand whether opening windows will increase or de
                       name="humidity"
                       value={indoorConditions.humidity}
                       onChange={handleInputChange}
-                      type="number"
+                      type="text"
                       InputProps={{
                         startAdornment: (
                           <InputAdornment position="start">
@@ -392,6 +442,7 @@ This calculation helps us understand whether opening windows will increase or de
                           </InputAdornment>
                         ),
                       }}
+                     
                     />
                   </Grid>
                 </Grid>
@@ -468,6 +519,47 @@ This calculation helps us understand whether opening windows will increase or de
                     </Box>
                     <Typography variant="body1" sx={{ marginTop: 2 }}>
                       Please input your indoor conditions to receive a recommendation.
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Box>
+            )}
+
+            {/* New General Recommendations Box */}
+            {recommendation && (
+              <Box sx={{ marginTop: 4 }}>
+                <Card variant="outlined">
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom>
+                      General Tips for Managing Indoor Humidity
+                    </Typography>
+                    <Typography variant="body1" paragraph>
+                      Maintaining the right indoor humidity levels can enhance your comfort, protect your home,
+                      and promote better health. Here are some simple and effective ways to manage humidity:
+                    </Typography>
+                    <ul>
+                      <li>
+                        <strong>Use Dehumidifiers or Humidifiers:</strong> These handy devices help keep your indoor air fresh by adding or removing moisture as needed.
+                      </li>
+                      <li>
+                        <strong>Ventilate Properly:</strong> Ensure good airflow in moisture-prone areas like bathrooms and kitchens by using exhaust fans or opening windows.
+                      </li>
+                      <li>
+                        <strong>Fix Leaks Promptly:</strong> Address any water leaks or drips immediately to prevent mold and mildew from taking hold.
+                      </li>
+                      <li>
+                        <strong>Utilize Exhaust Fans:</strong> Turn on exhaust fans when cooking or showering to reduce excess moisture in the air.
+                      </li>
+                      <li>
+                        <strong>Monitor Humidity Levels:</strong> Keep an eye on your indoor humidity with a hygrometer to stay informed and make adjustments as needed.
+                      </li>
+                    </ul>
+                    {/* Placeholder for Monetization (e.g., Affiliate Links) */}
+                    <Typography variant="body2" color="textSecondary" sx={{ marginTop: 2 }}>
+                      {/* Example Affiliate Link */}
+                      <a href="https://example.com/dehumidifiers" target="_blank" rel="noopener noreferrer">
+                        Discover our top-rated dehumidifiers
+                      </a>
                     </Typography>
                   </CardContent>
                 </Card>
