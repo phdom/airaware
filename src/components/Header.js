@@ -193,9 +193,9 @@ const Header = () => {
               alt="AirAware Logo"
               sx={{
                 height: {
-                  xs: '40px',
+                  xs: '30px',
                   sm: '60px',
-                  md: '80px',
+                  md: '70px',
                 },
                 mr: isSmallScreen ? 0 : 2,
               }}
@@ -215,8 +215,8 @@ const Header = () => {
                   letterSpacing: '0.05em',
                   fontSize: {
                     xs: '1.2rem',
-                    sm: '1.6rem',
-                    md: '2.2rem',
+                    sm: '1.4rem',
+                    md: '1.6rem',
                   },
                 }}
               >
@@ -228,8 +228,8 @@ const Header = () => {
                 sx={{
                   fontWeight: 400,
                   fontSize: {
-                    xs: '0.9rem',
-                    sm: '1rem',
+                    xs: '0.8rem',
+                    sm: '1.0rem',
                     md: '1.2rem',
                   },
                 }}
