@@ -1,25 +1,19 @@
 // src/components/WeatherDisplay.js
 
 import React, { useState, useEffect, useContext } from 'react';
-import { UnitContext } from '../context/UnitContext';
-import { LocationContext } from '../context/LocationContext';
-import { WeatherContext } from '../context/WeatherContext';
-import { calculateVaporPressure, calculateAbsoluteHumidity } from '../utils/humidity';
-import { getRecommendation } from '../utils/recommendation';
-import HumidityChart from './HumidityChart';
 import {
   Container,
-  TextField,
   Grid,
   Typography,
   Card,
   CardContent,
-  InputAdornment,
-  Collapse,
   Box,
   Fade,
   Button,
   Tooltip,
+  TextField,
+  InputAdornment,
+  Collapse,
 } from '@mui/material';
 import {
   Thermostat,
@@ -28,7 +22,7 @@ import {
   Grain,
   HomeWork,
   OpacityOutlined,
-  InfoOutlined, // For empty state icon
+  InfoOutlined,
 } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import {
@@ -38,8 +32,23 @@ import {
   WiSnow,
   WiFog,
   WiThunderstorm,
-  WiThermometer,
 } from 'react-icons/wi';
+
+// Contexts
+import { UnitContext } from '../context/UnitContext';
+import { LocationContext } from '../context/LocationContext';
+import { WeatherContext } from '../context/WeatherContext';
+import { IndoorContext } from '../context/IndoorContext'; // Ensure IndoorContext is created
+
+// Helper Functions
+import {
+  calculateVaporPressure,
+  calculateAbsoluteHumidity,
+} from '../utils/humidity';
+import { getRecommendation } from '../utils/recommendation';
+
+// Components
+import HumidityChart from './HumidityChart';
 
 // Utility function to categorize humidity levels
 const getHumidityLevel = (humidity) => {
@@ -66,7 +75,7 @@ const getPrecipitationDescription = (probability) => {
   return 'No rain today';
 };
 
-// New Helper Function to Get Weather Sentence with Humidity Level
+// Helper Function to Get Weather Sentence with Humidity Level
 const getWeatherSentence = (code, humidityLevel) => {
   const weatherSentences = {
     0: `It's a clear and sunny day with ${humidityLevel.toLowerCase()} humidity. Perfect for outdoor activities!`,
@@ -102,15 +111,50 @@ const getWeatherSentence = (code, humidityLevel) => {
   return weatherSentences[code] || `Weather conditions are currently unknown with ${humidityLevel.toLowerCase()} humidity. Stay prepared!`;
 };
 
+// Helper Function to Get Weather Icon
+const getWeatherIcon = (code) => {
+  if (code === 0 || code === 1) {
+    return <WiDaySunny size={48} />;
+  } else if (code >= 2 && code <= 3) {
+    return <WiCloudy size={48} />;
+  } else if (code >= 45 && code <= 48) {
+    return <WiFog size={48} />;
+  } else if (code >= 51 && code <= 67) {
+    return <WiRain size={48} />;
+  } else if (code >= 71 && code <= 86) {
+    return <WiSnow size={48} />;
+  } else if (code >= 95 && code <= 99) {
+    return <WiThunderstorm size={48} />;
+  } else {
+    return <WiDaySunny size={48} />;
+  }
+};
+
+// Helper Function to Get Wind Direction
+const getWindDirection = (deg) => {
+  const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+  const index = Math.round(((deg %= 360) < 0 ? deg + 360 : deg) / 45) % 8;
+  return directions[index];
+};
+
+// WeatherDisplay Component
 const WeatherDisplay = () => {
   const theme = useTheme();
   const { unit } = useContext(UnitContext);
   const { location } = useContext(LocationContext);
   const { outdoorWeather, hourlyData } = useContext(WeatherContext);
-  const [indoorConditions, setIndoorConditions] = useState({ temperature: '', humidity: '' });
+  const { indoorConditions, setIndoorConditions } = useContext(IndoorContext); // Access indoor conditions
   const [recommendation, setRecommendation] = useState('');
   const [showDetails, setShowDetails] = useState(false);
   const [detailedExplanation, setDetailedExplanation] = useState('');
+
+  // Load indoor conditions from local storage on mount
+  useEffect(() => {
+    const savedConditions = localStorage.getItem('indoorConditions');
+    if (savedConditions) {
+      setIndoorConditions(JSON.parse(savedConditions));
+    }
+  }, [setIndoorConditions]);
 
   // Calculate absolute humidity and get recommendation
   useEffect(() => {
@@ -127,6 +171,18 @@ const WeatherDisplay = () => {
       const indoorRH = parseFloat(indoorConditions.humidity);
       const outdoorRH = outdoorWeather.humidity;
 
+      // Validate indoorRH and outdoorRH
+      if (
+        isNaN(indoorTempC) ||
+        isNaN(outdoorTempC) ||
+        isNaN(indoorRH) ||
+        isNaN(outdoorRH)
+      ) {
+        setRecommendation('Invalid indoor or outdoor data.');
+        setDetailedExplanation('Please ensure all input values are correct.');
+        return;
+      }
+
       // Ensure outdoorRH is defined
       if (typeof outdoorRH !== 'undefined') {
         const indoorE = calculateVaporPressure(indoorTempC, indoorRH);
@@ -140,7 +196,11 @@ const WeatherDisplay = () => {
 
         // Prepare detailed explanation with updated wording and correct AH formula
         const explanation = `
-Your indoor absolute humidity is **${indoorAH.toFixed(2)} g/m³**, while the outdoor absolute humidity is **${outdoorAH.toFixed(2)} g/m³**.
+Your indoor absolute humidity is **${indoorAH.toFixed(
+          2
+        )} g/m³**, while the outdoor absolute humidity is **${outdoorAH.toFixed(
+          2
+        )} g/m³**.
 
 ${
   indoorAH > outdoorAH
@@ -171,7 +231,9 @@ This calculation helps us understand whether opening windows will increase or de
         setDetailedExplanation(explanation);
       } else {
         setRecommendation('Unable to retrieve outdoor humidity data.');
-        setDetailedExplanation('Sorry, we could not fetch the outdoor humidity data at this time.');
+        setDetailedExplanation(
+          'Sorry, we could not fetch the outdoor humidity data at this time.'
+        );
       }
     }
   }, [outdoorWeather, indoorConditions, unit]);
@@ -211,62 +273,30 @@ This calculation helps us understand whether opening windows will increase or de
     return weatherCodes[code] || 'Unknown';
   };
 
-  // Function to get weather icon
-  const getWeatherIcon = (code) => {
-    if (code === 0 || code === 1) {
-      return <WiDaySunny size={48} />;
-    } else if (code >= 2 && code <= 3) {
-      return <WiCloudy size={48} />;
-    } else if (code >= 45 && code <= 48) {
-      return <WiFog size={48} />;
-    } else if (code >= 51 && code <= 67) {
-      return <WiRain size={48} />;
-    } else if (code >= 71 && code <= 86) {
-      return <WiSnow size={48} />;
-    } else if (code >= 95 && code <= 99) {
-      return <WiThunderstorm size={48} />;
-    } else {
-      return <WiDaySunny size={48} />;
-    }
+  // Function to format temperature based on unit
+  const formatTemperature = (temp) => {
+    return `${temp}°${unit === 'metric' ? 'C' : 'F'}`;
   };
 
-  // Function to get wind direction
-  const getWindDirection = (deg) => {
-    const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
-    const index = Math.round(((deg %= 360) < 0 ? deg + 360 : deg) / 45) % 8;
-    return directions[index];
+  // Function to get weather sentence with humidity level
+  const getCurrentWeatherSentence = (code, humidityLevel) => {
+    return getWeatherSentence(code, humidityLevel);
   };
 
-  // Handle input change for indoor conditions
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setIndoorConditions((prev) => ({ ...prev, [name]: value }));
-  };
-
-  // Toggle details section
-  const handleToggleDetails = () => {
-    setShowDetails((prev) => !prev);
-  };
-
-  // Get icon for recommendation
+  // Function to get recommendation icon
   const getRecommendationIcon = () => {
-    if (recommendation.includes('open')) {
+    if (recommendation.toLowerCase().includes('open')) {
       return <Air sx={{ fontSize: 40, marginRight: 2 }} />;
-    } else if (recommendation.includes('close')) {
+    } else if (recommendation.toLowerCase().includes('close')) {
       return <HomeWork sx={{ fontSize: 40, marginRight: 2 }} />;
     } else {
       return <Opacity sx={{ fontSize: 40, marginRight: 2 }} />;
     }
   };
 
-  // Function to format temperature based on unit
-  const formatTemperature = (temp) => {
-    return `${temp}°${unit === 'metric' ? 'C' : 'F'}`;
-  };
-
-  // New Function to Get Weather Sentence with Humidity Level
-  const getCurrentWeatherSentence = (code, humidityLevel) => {
-    return getWeatherSentence(code, humidityLevel);
+  // Toggle details section
+  const handleToggleDetails = () => {
+    setShowDetails((prev) => !prev);
   };
 
   return (
@@ -292,7 +322,11 @@ This calculation helps us understand whether opening windows will increase or de
                 </Box>
 
                 {/* New Short Sentence About Weather Conditions */}
-                <Typography variant="body2" color="textSecondary" sx={{ marginTop: 1 }}>
+                <Typography
+                  variant="body2"
+                  color="textSecondary"
+                  sx={{ marginTop: 1 }}
+                >
                   {getCurrentWeatherSentence(
                     outdoorWeather.condition,
                     getHumidityLevel(outdoorWeather.humidity)
@@ -333,7 +367,10 @@ This calculation helps us understand whether opening windows will increase or de
                   {/* 4. Humidity */}
                   <Grid item xs={12} sm={6}>
                     <Box display="flex" alignItems="center">
-                      <Tooltip title={getHumidityLevel(outdoorWeather.humidity)} arrow>
+                      <Tooltip
+                        title={getHumidityLevel(outdoorWeather.humidity)}
+                        arrow
+                      >
                         <Typography
                           variant="subtitle1"
                           sx={{
@@ -400,7 +437,7 @@ This calculation helps us understand whether opening windows will increase or de
           <Grid item xs={12} md={6}>
             {/* Adjusted Title for Indoor Conditions */}
             <Typography variant="h5" component="h2" gutterBottom>
-              Submit Your Indoor Conditions
+              Your Indoor Conditions
             </Typography>
 
             {/* Input Indoor Conditions */}
@@ -415,7 +452,12 @@ This calculation helps us understand whether opening windows will increase or de
                       fullWidth
                       name="temperature"
                       value={indoorConditions.temperature}
-                      onChange={handleInputChange}
+                      onChange={(e) =>
+                        setIndoorConditions((prev) => ({
+                          ...prev,
+                          temperature: e.target.value,
+                        }))
+                      }
                       type="number"
                       InputProps={{
                         startAdornment: (
@@ -424,6 +466,7 @@ This calculation helps us understand whether opening windows will increase or de
                           </InputAdornment>
                         ),
                       }}
+                      required
                     />
                   </Grid>
                   <Grid item xs={12} sm={6}>
@@ -433,8 +476,13 @@ This calculation helps us understand whether opening windows will increase or de
                       fullWidth
                       name="humidity"
                       value={indoorConditions.humidity}
-                      onChange={handleInputChange}
-                      type="text"
+                      onChange={(e) =>
+                        setIndoorConditions((prev) => ({
+                          ...prev,
+                          humidity: e.target.value,
+                        }))
+                      }
+                      type="number"
                       InputProps={{
                         startAdornment: (
                           <InputAdornment position="start">
@@ -442,7 +490,7 @@ This calculation helps us understand whether opening windows will increase or de
                           </InputAdornment>
                         ),
                       }}
-                     
+                      required
                     />
                   </Grid>
                 </Grid>
@@ -483,7 +531,9 @@ This calculation helps us understand whether opening windows will increase or de
                             },
                           }}
                         >
-                          {showDetails ? 'Hide Details' : 'See the Math Behind This Recommendation'}
+                          {showDetails
+                            ? 'Hide Details'
+                            : 'See the Math Behind This Recommendation'}
                         </Button>
                       </Box>
                       <Collapse in={showDetails} timeout="auto" unmountOnExit>
@@ -514,7 +564,9 @@ This calculation helps us understand whether opening windows will increase or de
                 >
                   <CardContent>
                     <Box display="flex" alignItems="center" gap={2}>
-                      <InfoOutlined sx={{ fontSize: 40, color: theme.palette.grey[400] }} />
+                      <InfoOutlined
+                        sx={{ fontSize: 40, color: theme.palette.grey[400] }}
+                      />
                       <Typography variant="h6">No Recommendations Yet</Typography>
                     </Box>
                     <Typography variant="body1" sx={{ marginTop: 2 }}>
@@ -534,30 +586,46 @@ This calculation helps us understand whether opening windows will increase or de
                       General Tips for Managing Indoor Humidity
                     </Typography>
                     <Typography variant="body1" paragraph>
-                      Maintaining the right indoor humidity levels can enhance your comfort, protect your home,
-                      and promote better health. Here are some simple and effective ways to manage humidity:
+                      Maintaining the right indoor humidity levels can enhance your comfort, protect
+                      your home, and promote better health. Here are some simple and effective
+                      ways to manage humidity:
                     </Typography>
                     <ul>
                       <li>
-                        <strong>Use Dehumidifiers or Humidifiers:</strong> These handy devices help keep your indoor air fresh by adding or removing moisture as needed.
+                        <strong>Use Dehumidifiers or Humidifiers:</strong> These handy devices help
+                        keep your indoor air fresh by adding or removing moisture as needed.
                       </li>
                       <li>
-                        <strong>Ventilate Properly:</strong> Ensure good airflow in moisture-prone areas like bathrooms and kitchens by using exhaust fans or opening windows.
+                        <strong>Ventilate Properly:</strong> Ensure good airflow in moisture-prone
+                        areas like bathrooms and kitchens by using exhaust fans or opening windows.
                       </li>
                       <li>
-                        <strong>Fix Leaks Promptly:</strong> Address any water leaks or drips immediately to prevent mold and mildew from taking hold.
+                        <strong>Fix Leaks Promptly:</strong> Address any water leaks or drips
+                        immediately to prevent mold and mildew from taking hold.
                       </li>
                       <li>
-                        <strong>Utilize Exhaust Fans:</strong> Turn on exhaust fans when cooking or showering to reduce excess moisture in the air.
+                        <strong>Utilize Exhaust Fans:</strong> Turn on exhaust fans when cooking or
+                        showering to reduce excess moisture in the air.
                       </li>
                       <li>
-                        <strong>Monitor Humidity Levels:</strong> Keep an eye on your indoor humidity with a hygrometer to stay informed and make adjustments as needed.
+                        <strong>Monitor Humidity Levels:</strong> Keep an eye on your indoor
+                        humidity with a hygrometer to stay informed and make adjustments as
+                        needed.
                       </li>
                     </ul>
                     {/* Placeholder for Monetization (e.g., Affiliate Links) */}
-                    <Typography variant="body2" color="textSecondary" sx={{ marginTop: 2 }}>
+                    <Typography
+                      variant="body2"
+                      color="textSecondary"
+                      sx={{ marginTop: 2 }}
+                    >
                       {/* Example Affiliate Link */}
-                      <a href="https://example.com/dehumidifiers" target="_blank" rel="noopener noreferrer">
+                      <a
+                        href="https://example.com/dehumidifiers"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ color: theme.palette.primary.light }}
+                      >
                         Discover our top-rated dehumidifiers
                       </a>
                     </Typography>

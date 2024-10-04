@@ -1,9 +1,9 @@
+// src/utils/citySearch.js
+
 import axios from 'axios';
 
 export const getCities = async (query) => {
   const accessToken = process.env.REACT_APP_MAPBOX_TOKEN;
-
-  console.log('Mapbox Access Token:', accessToken);
 
   const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json`;
 
@@ -16,8 +16,6 @@ export const getCities = async (query) => {
       },
     });
 
-    console.log('Mapbox Response:', response.data);
-
     return response.data.features.map((feature) => ({
       name: feature.place_name,
       lat: feature.center[1],
@@ -25,7 +23,6 @@ export const getCities = async (query) => {
     }));
   } catch (error) {
     console.error('Error fetching city data:', error);
-
     return [];
   }
 };
